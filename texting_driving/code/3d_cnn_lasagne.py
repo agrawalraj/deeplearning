@@ -151,7 +151,7 @@ if __name__ == '__main__':
     test_loss = lasagne.objectives.binary_hinge_loss(test_prediction,
                                                         target_var)
     test_loss = test_loss.mean()
-    test_acc = T.mean(T.eq(test_prediction, target_var),
+    test_acc = T.mean(T.eq(T.sqn(test_prediction), target_var),
                   dtype=theano.config.floatX)
 
     # compile training function that updates parameters and returns training loss
@@ -181,6 +181,7 @@ if __name__ == '__main__':
             inputs, targets = batch
             err, acc = val_fn(inputs, targets)
             val_err += err
+            print(val_err)
             val_acc += acc
             val_batches += 1
 
