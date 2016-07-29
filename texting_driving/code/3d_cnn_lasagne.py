@@ -24,7 +24,7 @@ import theano
 import theano.tensor as T
 from theano.tensor import *
 
-from lasagne.nonlinearities import softmax, rectify
+from lasagne.nonlinearities import softmax, rectify, sigmoid
 from lasagne.layers import InputLayer, DenseLayer, NonlinearityLayer, DropoutLayer
 from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer
 from lasagne.objectives import binary_crossentropy, binary_hinge_loss
@@ -65,32 +65,9 @@ def build_cnn(input_var):
     net['fc5']  = DenseLayer(net['dropout4'], num_units=500, nonlinearity=rectify)
 
     # ----------------- Output Layer -----------------
-    net['output']  = DenseLayer(net['fc5'], num_units=2, nonlinearity=softmax)
+    net['output']  = DenseLayer(net['fc5'], num_units=1, nonlinearity=sigmoid)
 
     return net
-
-def build_cnn_test(input_var):
-    """
-    Builds 3D spatio-temporal CNN model
-    Returns
-    -------
-    dict
-        A dictionary containing the network layers, where the output layer is at key 'output'
-    """
-    net = {}
-    net['input'] = InputLayer((None, 1, 10, 81, 144), input_var=input_var)
-
-    # ----------- 1st Conv layer group ---------------
-    net['conv1a'] = Conv3DDNNLayer(net['input'], 1, (3,3,3), nonlinearity=rectify,flip_filters=False)
-    net['pool1']  = MaxPool3DDNNLayer(net['conv1a'],pool_size=(1,2,2))
-
-    # ----------------- Dense Layers -----------------
-    net['fc4']  = DenseLayer(net['pool1'], num_units=500, nonlinearity=rectify)
-    net['fc5']  = DenseLayer(net['fc4'], num_units=500, nonlinearity=rectify)
-
-    # ----------------- Output Layer -----------------
-    net['output']  = DenseLayer(net['fc5'], num_units=2, nonlinearity=softmax)
-    return net 
 
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
     num_samps = inputs.shape[0]
@@ -158,6 +135,7 @@ if __name__ == '__main__':
     dtensor5 = TensorType('float32', (False,)*5)
     input_var = dtensor5('inputs')
     target_var = T.ivector('targets')
+    # target_var = T.imatrix('targets')
     network = build_cnn(input_var)['output']
 
     # create loss function
@@ -189,6 +167,7 @@ if __name__ == '__main__':
         #start_time = time.time()
         for batch in iterate_minibatches(X_train, y_train, 16, shuffle=True):
             inputs, targets = batch
+            # targets = [[0], [1], [1], [0], [0], [1], [0], [1], [0], [1], [1], [0], [1], [1], [1], [0]]
             train_err += train_fn(inputs, targets)
             train_batches += 1
 
