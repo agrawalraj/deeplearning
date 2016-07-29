@@ -143,11 +143,11 @@ layers = build_layers()
 network = NeuralNet(
     layers=layers,
     input_shape = (None, 1, 10, 81, 144), #Batch size of 32 
-    conv1_num_filters=32, conv1_filter_size=(3, 3, 3), pool1_pool_size=(1, 2, 2),
+    conv1_num_filters=8, conv1_filter_size=(3, 3, 3), pool1_pool_size=(1, 2, 2),
     dropout1_p=0.1, 
-    conv2_num_filters=64, conv2_filter_size=(3, 3, 3), pool2_pool_size=(2, 2, 2),
+    conv2_num_filters=16, conv2_filter_size=(3, 3, 3), pool2_pool_size=(2, 2, 2),
     dropout2_p=0.2,  
-    conv3_num_filters=128, conv3_filter_size=(3, 3, 3), pool3_pool_size=(1, 2, 2),
+    conv3_num_filters=32, conv3_filter_size=(3, 3, 3), pool3_pool_size=(1, 2, 2),
     dropout3_p=0.3,  
     hidden4_num_units=500,
     dropout4_p=0.5,  
