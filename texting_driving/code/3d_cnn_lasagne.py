@@ -95,10 +95,15 @@ def get_weights(network):
     all_params = nntools.layers.get_all_params(network)
     return [p.get_value() for p in all_params]
 
-def load_model(network_shell, weights):
-    all_params = nntools.layers.get_all_params(network_shell)
-    for p, v in zip(all_params, all_param_values):
-        p.set_value(v)
+# This function was taken from:
+# http://stackoverflow.com/questions/34338838/pickle-python-lasagne-model
+def load_3dcnn_model(path_to_weights):
+    input_var = dtensor5('inputs')
+    network = build_cnn(input_var)['output']
+    with np.load(path_to_weights) as f:
+        param_values = [f['arr_%d' % i] for i in range(len(f.files))]
+    lasagne.layers.set_all_param_values(network, param_values)
+    return network
 
 def stop_early(curr_val_acc, val_acc_list, patience=200):
     num_epochs = len(val_acc_list):
@@ -115,10 +120,7 @@ def stop_early(curr_val_acc, val_acc_list, patience=200):
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
     # Save weights every 20 epochs to server (transport to s3 eventually)
     if epochs % multiple == 0 or curr_val_acc >= max(val_acc_list):
-        weights = get_weights(network)
-        weight_path = '../data/train/weights/cnn' + str(epochs)
-        with open(weight_path, 'wb') as f:
-            pickle.dump(weights, f, -1)
+        np.savez(weights_path, *lasagne.layers.get_all_param_values(network))
         print('Saved Weights for ' + str(epochs))
 
 if __name__ == '__main__':
@@ -213,7 +215,10 @@ if __name__ == '__main__':
             val_acc / val_batches * 100))
         
         # Check if we are starting to overfit  
-        if stop_early(val_acc, epoch_accuracies):  
+        if stop_early(val_acc, epoch_accuracies): 
+            # Save best weights in models directory
+            with open('../model/best_weights.npz', 'wb') as f:
+
             break   
 
         epoch_accuracies.append(val_acc)
@@ -225,6 +230,6 @@ if __name__ == '__main__':
         if val_acc >= max(epoch_accuracies):
             best_network_weights = get_all_params_values(network)
 
-    # Save Model (Not doing anymore - just use load_weights instead)
+    # Save Model (Not doing anymore - just use 'load_3dcnn_model' instead)
     # with open('../model/network.pickle', 'wb') as f:
     #     pickle.dump(network, f, -1)
