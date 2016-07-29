@@ -7,5 +7,5 @@ data:
 
 run_model:
     cd code && 
-    python 3d_cnn.py && 
+    python 3d_cnn_lasagne.py && 
     cd .. 
