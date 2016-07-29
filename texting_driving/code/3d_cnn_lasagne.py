@@ -85,9 +85,9 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         distorts_per_cat = int(num_changes / 2) # Of those we distort, flip half, rotate other half
 
         swap_indcs = np.random.choice(batchsize, num_changes, replace=False)
-        flip_indcs = batch_indcs[0:distorts_per_cat]
-        rotate_indcs = batch_indcs[distorts_per_cat:(2*distorts_per_cat)]
-        batch_sample_input[flip_indcs] = batch_sample_input[flip_indcs, :, :, ::-1] 
+        flip_indcs = swap_indcs[0:distorts_per_cat]
+        rotate_indcs = swap_indcs[distorts_per_cat:(2*distorts_per_cat)]
+        batch_sample_input[flip_indcs] = batch_sample_input[flip_indcs, :, :, :, ::-1] 
         for i in rotate_indcs:
             batch_sample_input[i, :, :, :, :] = random_image_generator(batch_sample_input[i, :, :, :, :])
         yield batch_sample_input, batch_sample_target
@@ -140,17 +140,18 @@ if __name__ == '__main__':
 
     # create loss function
     prediction = lasagne.layers.get_output(network)
-    loss = lasagne.objectives.binary_crossentropy(prediction, target_var)
+    loss = lasagne.objectives.binary_hinge_loss(prediction, target_var)
     loss = loss.mean()
 
     # create parameter update expressions
     params = lasagne.layers.get_all_params(network, trainable=True)
-    updates = lasagne.updates.adam(loss, params)
+    updates = lasagne.updates.nesterov_momentum(loss, params, learning_rate=0.001,
+                                            momentum=0.99)
     test_prediction = lasagne.layers.get_output(network, deterministic=True)
-    test_loss = lasagne.objectives.binary_crossentropy(test_prediction,
+    test_loss = lasagne.objectives.binary_hinge_loss(test_prediction,
                                                         target_var)
     test_loss = test_loss.mean()
-    test_acc = T.mean(T.eq(T.argmax(test_prediction, axis=1), target_var),
+    test_acc = T.mean(T.eq(test_prediction, target_var),
                   dtype=theano.config.floatX)
 
     # compile training function that updates parameters and returns training loss
@@ -169,6 +170,7 @@ if __name__ == '__main__':
             inputs, targets = batch
             # targets = [[0], [1], [1], [0], [0], [1], [0], [1], [0], [1], [1], [0], [1], [1], [1], [0]]
             train_err += train_fn(inputs, targets)
+            print(train_err)
             train_batches += 1
 
         # And a full pass over the validation data:
