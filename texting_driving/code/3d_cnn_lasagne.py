@@ -91,10 +91,6 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
             batch_sample_input[i, :, :, :, :] = random_image_generator(batch_sample_input[i, :, :, :, :])
         yield batch_sample_input, batch_sample_target
 
-def get_weights(network):
-    all_params = nntools.layers.get_all_params(network)
-    return [p.get_value() for p in all_params]
-
 # This function was taken from:
 # http://stackoverflow.com/questions/34338838/pickle-python-lasagne-model
 def load_3dcnn_model(path_to_weights):
@@ -120,6 +116,7 @@ def stop_early(curr_val_acc, val_acc_list, patience=200):
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
     # Save weights every 20 epochs to server (transport to s3 eventually)
     if epochs % multiple == 0 or curr_val_acc >= max(val_acc_list):
+        weight_path = '../data/train/weights/cnn' + str(epoch)
         np.savez(weights_path, *lasagne.layers.get_all_param_values(network))
         print('Saved Weights for ' + str(epochs))
 
@@ -183,7 +180,7 @@ if __name__ == '__main__':
     val_fn = theano.function([input_var, target_var], [test_loss, test_acc])
 
     num_epochs = 8000 # Will probably not do this many b/c of early stopping 
-    best_network_weights = None 
+    best_network_weights_epoch = 0 
     epoch_accuracies = [] 
     # Train network 
     for epoch in range(num_epochs):
@@ -217,8 +214,10 @@ if __name__ == '__main__':
         # Check if we are starting to overfit  
         if stop_early(val_acc, epoch_accuracies): 
             # Save best weights in models directory
+            best_weight_path = '../data/train/weights/cnn' + str(best_network_weights)
+            weights = np.load(best_weight_path)
             with open('../model/best_weights.npz', 'wb') as f:
-
+                pickle.dump(weights, f, -1)
             break   
 
         epoch_accuracies.append(val_acc)
@@ -226,9 +225,9 @@ if __name__ == '__main__':
         # Save weights every 100 epochs or if best weights. Also updates best weights 
         save_weights(network, epoch, val_acc, epoch_accuracies) 
 
-        # Update best weights 
+        # Update best weights  
         if val_acc >= max(epoch_accuracies):
-            best_network_weights = get_all_params_values(network)
+            best_network_weights = epoch # This epoch is best so far  
 
     # Save Model (Not doing anymore - just use 'load_3dcnn_model' instead)
     # with open('../model/network.pickle', 'wb') as f:
