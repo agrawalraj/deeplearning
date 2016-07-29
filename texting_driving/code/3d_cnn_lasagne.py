@@ -47,10 +47,9 @@ def build_cnn(input_var):
     # ----------- 1st Conv layer group ---------------
     net['conv1a'] = Conv3DDNNLayer(net['input'], 8, (3,3,3), nonlinearity=rectify,flip_filters=False)
     net['pool1']  = MaxPool3DDNNLayer(net['conv1a'],pool_size=(1,2,2))
-    net['dropout1'] = DropoutLayer(net['pool1'], p=.1)
 
     # ------------- 2nd Conv layer group --------------
-    net['conv2a'] = Conv3DDNNLayer(net['dropout1'], 16, (3,3,3), nonlinearity=rectify)
+    net['conv2a'] = Conv3DDNNLayer(net['pool1'], 16, (3,3,3), nonlinearity=rectify)
     net['pool2']  = MaxPool3DDNNLayer(net['conv2a'],pool_size=(2,2,2))
     net['dropout2'] = DropoutLayer(net['pool2'], p=.3)
 
