@@ -5,7 +5,7 @@
 
 # Quick Architectural Overview:
 # - 3 convolutional layers (ReLu, Dropout, MaxPooling), 2 dense layers
-# - Binary Cross-entropy 
+# - Binary Hinge-Loss  
 # - Adam update  
 # - Early Stopping 
 
@@ -20,10 +20,9 @@ import theano
 import numpy as np
 import cPickle as pickle
 
-from lasagne.nonlinearities import softmax
 from lasagne.layers import InputLayer, DenseLayer, NonlinearityLayer, DropoutLayer
 from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer
-from lasagne.objectives import binary_crossentropy
+from lasagne.objectives import binary_hinge_loss
 from lasagne.updates import adam
 from lasagne import layers
 
@@ -153,10 +152,10 @@ network = NeuralNet(
     hidden4_num_units=500,
     dropout4_p=0.5,  
     hidden5_num_units=500,
-    output_num_units=2, output_nonlinearity=softmax,
+    output_num_units=1, output_nonlinearity=None,
     
     update=adam,
-    objective_loss_function=binary_crossentropy,
+    objective_loss_function=binary_hinge_loss,
     
     regression=False,
     batch_iterator_train=FlipBatchIterator(batch_size=32, shuffle=False), #Data already shuffled 
@@ -196,8 +195,10 @@ if __name__ == '__main__':
 
     # Convert Y into a binary vector 
     # 0 means nothing, 1 only driver text, 2 both text, 3 only passanger text
+    Y[Y == 0] = -1
+    Y[Y == 1] = 1
     Y[Y == 2] = 1 #1466 total 1s 
-    Y[Y == 3] = 0 #1598 total 0s 
+    Y[Y == 3] = -1 #1598 total -1s 
     Y = Y.astype(np.int32)
 
     # Fit model 
