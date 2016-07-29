@@ -174,7 +174,7 @@ network = NeuralNet(
 
 if __name__ == '__main__':
 
-    #Large network, need to increase Python's recursion limit
+    # Large network, need to increase Python's recursion limit
     sys.setrecursionlimit(10000)
 
     # Load data (did not standardize b/c images in 0-256)
