@@ -27,7 +27,6 @@ from theano.tensor import *
 
 from lasagne.nonlinearities import rectify
 from lasagne.layers import InputLayer, DenseLayer, DropoutLayer
-from lasagne.layers import get_all_param_values, set_all_param_values
 from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer
 from lasagne.objectives import binary_hinge_loss
 from lasagne.updates import adam, nesterov_momentum
@@ -92,6 +91,15 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
             batch_sample_input[i, :, :, :, :] = random_image_generator(batch_sample_input[i, :, :, :, :])
         yield batch_sample_input, batch_sample_target
 
+def get_weights(network):
+    all_params = nntools.layers.get_all_params(network)
+    return [p.get_value() for p in all_params]
+
+def load_model(network_shell, weights):
+    all_params = nntools.layers.get_all_params(network_shell)
+    for p, v in zip(all_params, all_param_values):
+        p.set_value(v)
+
 def stop_early(curr_val_acc, val_acc_list, patience=200):
     num_epochs = len(val_acc_list):
     if num_epochs < 200:
@@ -104,13 +112,10 @@ def stop_early(curr_val_acc, val_acc_list, patience=200):
         else:
             return False 
 
-def revert_network(network, weights):
-    network.set_all_param_values(weights)
-
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
     # Save weights every 20 epochs to server (transport to s3 eventually)
     if epochs % multiple == 0 or curr_val_acc >= max(val_acc_list):
-        weights = get_all_params_values(network)
+        weights = get_weights(network)
         weight_path = '../data/train/weights/cnn' + str(epochs)
         with open(weight_path, 'wb') as f:
             pickle.dump(weights, f, -1)
@@ -118,7 +123,7 @@ def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
 
 if __name__ == '__main__':
 
-    # Might need to increase Python's recursion limit
+    # Might need to increase Python's recursion limit (I didn't need to)
     # sys.setrecursionlimit(10000)
 
     # Load data (did not standardize b/c images in 0-256)
@@ -208,9 +213,7 @@ if __name__ == '__main__':
             val_acc / val_batches * 100))
         
         # Check if we are starting to overfit  
-        if stop_early(val_acc, epoch_accuracies):
-            # Output network w/ best weights
-            revert_model(network, best_network_weights)  
+        if stop_early(val_acc, epoch_accuracies):  
             break   
 
         epoch_accuracies.append(val_acc)
@@ -222,6 +225,6 @@ if __name__ == '__main__':
         if val_acc >= max(epoch_accuracies):
             best_network_weights = get_all_params_values(network)
 
-    # Save Model 
-    with open('../model/network.pickle', 'wb') as f:
-        pickle.dump(network, f, -1)
+    # Save Model (Not doing anymore - just use load_weights instead)
+    # with open('../model/network.pickle', 'wb') as f:
+    #     pickle.dump(network, f, -1)
