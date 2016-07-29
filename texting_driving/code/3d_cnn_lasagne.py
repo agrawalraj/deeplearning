@@ -112,12 +112,15 @@ def stop_early(curr_val_acc, val_acc_list, patience=200):
             return True 
         else:
             return False 
+def save_network_weights(path, network):
+    np.savez(path, *lasagne.layers.get_all_param_values(network))
+
 
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
     # Save weights every 20 epochs to server (transport to s3 eventually)
     if epochs % multiple == 0 or curr_val_acc >= max(val_acc_list):
         weight_path = '../data/train/weights/cnn' + str(epoch)
-        np.savez(weights_path, *lasagne.layers.get_all_param_values(network))
+        save_network_weights(weight_path, network)
         print('Saved Weights for ' + str(epochs))
 
 if __name__ == '__main__':
