@@ -42,7 +42,7 @@ def build_cnn(input_var):
         A dictionary containing the network layers, where the output layer is at key 'output'
     """
     net = {}
-    net['input'] = InputLayer((None, 1, 10, 108, 192), input_var=input_var)
+    net['input'] = InputLayer((None, 1, 10, 81, 144), input_var=input_var)
 
     # ----------- 1st Conv layer group ---------------
     net['conv1a'] = Conv3DDNNLayer(net['input'], 32, (3,3,3), nonlinearity=rectify,flip_filters=False)
@@ -69,6 +69,29 @@ def build_cnn(input_var):
 
     return net
 
+def build_cnn_test(input_var):
+    """
+    Builds 3D spatio-temporal CNN model
+    Returns
+    -------
+    dict
+        A dictionary containing the network layers, where the output layer is at key 'output'
+    """
+    net = {}
+    net['input'] = InputLayer((None, 1, 10, 81, 144), input_var=input_var)
+
+    # ----------- 1st Conv layer group ---------------
+    net['conv1a'] = Conv3DDNNLayer(net['input'], 1, (3,3,3), nonlinearity=rectify,flip_filters=False)
+    net['pool1']  = MaxPool3DDNNLayer(net['conv1a'],pool_size=(1,2,2))
+
+    # ----------------- Dense Layers -----------------
+    net['fc4']  = DenseLayer(net['pool1'], num_units=500, nonlinearity=rectify)
+    net['fc5']  = DenseLayer(net['fc4'], num_units=500, nonlinearity=rectify)
+
+    # ----------------- Output Layer -----------------
+    net['output']  = DenseLayer(net['fc5'], num_units=2, nonlinearity=softmax)
+    return net 
+
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
     num_samps = inputs.shape[0]
     indcs = np.arange(num_samps)
@@ -77,7 +100,7 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         np.random.shuffle(indcs)
     for i in range(0, num_samps - batchsize + 1, batchsize): 
         batch_indcs = indcs[i:(i + batchsize)]
-        batch_sample_input = inputs[indcs]
+        batch_sample_input = inputs[batch_indcs]
         batch_sample_target = targets[batch_indcs]
 
         # This handles random orientation logic
@@ -95,7 +118,7 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
 if __name__ == '__main__':
 
     #Large network, need to increase Python's recursion limit
-    sys.setrecursionlimit(10000)
+    #sys.setrecursionlimit(10000)
 
     # Load data (did not standardize b/c images in 0-256)
     X = np.load('../data/train/images_by_time_mat.npy')
@@ -157,28 +180,28 @@ if __name__ == '__main__':
     val_fn = theano.function([input_var, target_var], [test_loss, test_acc])
 
     #num_epochs = 10000
-num_epochs = 100 
-# train network 
-for epoch in range(num_epochs):
-    # In each epoch, we do a full pass over the training data:
-    train_err = 0
-    train_batches = 0
-    #start_time = time.time()
-    for batch in iterate_minibatches(X_train, y_train, 16, shuffle=True):
-        inputs, targets = batch
-        train_err += train_fn(inputs, targets)
-        train_batches += 1
+    num_epochs = 100 
+    # train network 
+    for epoch in range(num_epochs):
+        # In each epoch, we do a full pass over the training data:
+        train_err = 0
+        train_batches = 0
+        #start_time = time.time()
+        for batch in iterate_minibatches(X_train, y_train, 16, shuffle=True):
+            inputs, targets = batch
+            train_err += train_fn(inputs, targets)
+            train_batches += 1
 
-    # And a full pass over the validation data:
-    val_err = 0
-    val_acc = 0
-    val_batches = 0
-    for batch in iterate_minibatches(X_val, y_val, 16, shuffle=False):
-        inputs, targets = batch
-        err, acc = val_fn(inputs, targets)
-        val_err += err
-        val_acc += acc
-        val_batches += 1
+        # And a full pass over the validation data:
+        val_err = 0
+        val_acc = 0
+        val_batches = 0
+        for batch in iterate_minibatches(X_val, y_val, 16, shuffle=False):
+            inputs, targets = batch
+            err, acc = val_fn(inputs, targets)
+            val_err += err
+            val_acc += acc
+            val_batches += 1
 
     # Then we print the results for this epoch:
     print("Epoch {} of {} took {:.3f}s".format(
