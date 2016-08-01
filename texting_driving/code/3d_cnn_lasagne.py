@@ -82,7 +82,6 @@ def build_cnn(input_var):
     return net
 
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
-
     """
     Overview: 
         An iterator that randomly rotates or flips 3/4 of the 
