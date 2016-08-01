@@ -15,6 +15,7 @@
 from __future__ import division 
 
 import sys
+import os
 import lasagne
 import theano
 import numpy as np
@@ -218,10 +219,8 @@ if __name__ == '__main__':
         # Check if we are starting to overfit  
         if stop_early(val_acc, epoch_accuracies): 
             # Save best weights in models directory
-            best_weight_path = '../data/train/weights/cnn' + str(best_network_weights)
-            weights = np.load(best_weight_path)
-            with open('../model/best_weights.npz', 'wb') as f:
-                pickle.dump(weights, f, -1)
+            best_weight_path = '../data/train/weights/cnn' + str(best_network_weights_epoch) + '.npz'
+            os.rename(best_weight_path, '../models/3d_cnn_' + str(best_network_weights_epoch) + '.npz')
             break   
 
         epoch_accuracies.append(val_acc)
