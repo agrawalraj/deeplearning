@@ -5,9 +5,10 @@ from scipy.ndimage import convolve, rotate
 import numpy as np
 
 def random_image_generator(image_stack):
-    '''
-    This function will randomly translate and rotate an image, producing a new, altered version as output.
-    '''
+    """
+    This function will randomly translate and rotate multiple image frames 
+    (all in same direction), producing a new, altered version as output.
+    """
     num_frames = image_stack.shape[1]
     length = image_stack.shape[2]
     width = image_stack.shape[3]
