@@ -104,7 +104,7 @@ def load_3dcnn_model(path_to_weights):
 
 def stop_early(curr_val_acc, val_acc_list, patience=200):
     num_epochs = len(val_acc_list)
-    if num_epochs < 200:
+    if num_epochs < patience:
         return False 
     else:
         prev_acc = val_acc_list[num_epochs - patience]
@@ -119,7 +119,7 @@ def save_network_weights(path, network):
 
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
     # Save weights every 20 epochs to server (transport to s3 eventually)
-    if epoch % multiple == 0 or curr_val_acc >= np.max(val_acc_list):
+    if epoch % multiple == 0 or curr_val_acc > np.max(val_acc_list):
         weight_path = '../data/train/weights/cnn' + str(epoch)
         save_network_weights(weight_path, network)
         print('Saved Weights for ' + str(epoch))
@@ -149,6 +149,7 @@ if __name__ == '__main__':
     # 85% train, 15% validation
     num_samps = 3064
     indcs = np.arange(num_samps)
+    np.random.shuffle(indcs)
     train_indcs = indcs[:2604]
     test_indcs = indcs[2604:]
     X_train, X_val = X[train_indcs], X[test_indcs]
