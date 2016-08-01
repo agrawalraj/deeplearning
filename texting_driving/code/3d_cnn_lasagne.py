@@ -37,11 +37,22 @@ from random_image_generator import *
 
 def build_cnn(input_var):
     """
-    Builds 3D spatio-temporal CNN model
+    Overview:
+        Builds 3D spatio-temporal CNN model
+    ----------
+    input_var: Theano Tensor 
+        For our architecture this should be set to  
+        TensorType('float32', (False,)*5). For images, (if working w/
+        images the input layer should obviously be changed) this should be 
+        a 4d Theano tensor. In this case, Theano already has a build in 4d 
+        tensor called 'tensor4.' See the Theano MNIST tutorial for more 
+        details.
+    
     Returns
     -------
     dict
-        A dictionary containing the network layers, where the output layer is at key 'output'
+        A dictionary containing the network layers, where the output layer 
+        is at key 'output'
     """
     net = {}
     net['input'] = InputLayer((None, 1, 10, 81, 144), input_var=input_var)
@@ -71,6 +82,38 @@ def build_cnn(input_var):
     return net
 
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
+
+    """
+    Overview: 
+        An iterator that randomly rotates or flips 3/4 of the 
+        samples in the minibatch. The remaining 1/4 of the samples
+        are left the same. This is used for (minibatch) stochastic gradient 
+        decent updating.
+    ----------
+    inputs: numpy array  
+        This should be the training data of shape 
+        (num_train, num_frames, length, width)
+    
+    targets: numpy array 
+        This should be the corresponding labels of shape
+        (num_train, )
+    
+    batchsize: int
+        The number of samples in each minibatch 
+    
+    shuffle: 
+        Defaults to false. If true, the training data is
+        shuffled.
+
+    Returns
+    -------
+    batch_sample_input: numpy array
+        An array consisting of the minibatch data with some samples
+        possibly flipped or randomly rotated. 
+    
+    batch_sample_target: numpy array
+        The corresponding labels for the batch_sample_input
+    """
     num_samps = inputs.shape[0]
     indcs = np.arange(num_samps)
     if shuffle:
@@ -95,6 +138,22 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
 # This function was taken from:
 # http://stackoverflow.com/questions/34338838/pickle-python-lasagne-model
 def load_3dcnn_model(path_to_weights):
+    """
+    Overview: 
+        This loads pretrained weights into a 3D colvolutional 
+        neutal network. 
+    ----------
+    path_to_weights: string   
+        This should be the path where the weights are located. 
+        This should be a .npz file consisting of weights for each
+        layer. See the function 'save_network_weights' below for 
+        more details of this format. 
+
+    Returns
+    -------
+    network: Lasagne object 
+        The network w/ the specified weights loaded into each layer.  
+    """
     input_var = dtensor5('inputs')
     network = build_cnn(input_var)['output']
     with np.load(path_to_weights) as f:
@@ -103,6 +162,26 @@ def load_3dcnn_model(path_to_weights):
     return network
 
 def stop_early(curr_val_acc, val_acc_list, patience=200):
+    """
+    Overview: 
+        This implements the early stopping logic for training.  
+    ----------
+    curr_val_acc: float    
+        The accuracy for the current epoch 
+
+    val_acc_list: array    
+        List of accuracies for past epochs
+
+    patience: int   
+        How many epochs to look back in order to compare 
+        'curr_val_acc'  
+
+    Returns
+    -------
+    boolean: True or False 
+        If true this means that the network should halt. Otherwise, 
+        the network should continue training.   
+    """
     num_epochs = len(val_acc_list)
     if num_epochs < patience:
         return False 
@@ -115,9 +194,51 @@ def stop_early(curr_val_acc, val_acc_list, patience=200):
             return False 
 
 def save_network_weights(path, network):
+    """
+    Overview: 
+        This saves the weights for each layer in the network
+        in a .npz file  
+    ----------
+    path: string   
+        Location of where to store the weights 
+
+    network: Lasagne object
+        The network from which the weights will be extracted from   
+
+    Returns
+    -------
+    None  
+    """
     np.savez(path, *lasagne.layers.get_all_param_values(network))
 
 def save_weights(network, epoch, curr_val_acc, val_acc_list, multiple=100):
+    """
+    Overview: 
+        This saves the weights for each layer in the network
+        in a .npz file at multiples of 'multiple' or if the 
+        curr_val_acc is the best accuracy so far. The weights are saved 
+        in '../data/train/weights/cnnEPOCH.npz' 
+    ----------
+    network: string   
+        The network from which the weights will be extracted from 
+
+    epoch: int
+        The current epoch of training 
+
+    curr_val_acc: 
+        The accuracy for the current epoch
+    
+    val_acc_list:
+        List of accuracies for past epochs
+
+    multiple:
+        Defaults at 100. Specifies the cycle time for 
+        saving wieghts. 
+    Returns
+    -------
+    None:
+        Prints if it saves weights and specifies the epoch  
+    """
     # Save weights every 20 epochs to server (transport to s3 eventually)
     if epoch % multiple == 0 or curr_val_acc > np.max(val_acc_list):
         weight_path = '../data/train/weights/cnn' + str(epoch)
@@ -216,7 +337,7 @@ if __name__ == '__main__':
         print("  validation loss:\t\t{:.6f}".format(val_err / val_batches))
         print("  validation accuracy:\t\t{:.2f} %".format(
             val_acc / val_batches * 100))
-        
+        print("Current Epoch = " + str(epoch))
         # Check if we are starting to overfit  
         if stop_early(val_acc, epoch_accuracies): 
             # Save best weights in models directory
