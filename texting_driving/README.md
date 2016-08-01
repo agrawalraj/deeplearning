@@ -38,7 +38,7 @@ a video stream using convolutional neural nets
     - Change the 'iterate_minibatches' to whatever you would like your mini-batches to look like. If dealing w/ images, be sure to change the slicings in this function. 
 - Note: Eventually I will have functions to do all of this. 
 
-## Instance Notifications in AWS to Save Money  
+## Instance Notifications on AWS to Save Money  
 - Right click on the gpu instance and select add/edit alarms
 - From there you can specify the email address to recieve the notifications 
 - I chose to be notified when the max CPU usage on the instance drops below 4% for 5 minutes straight to signal that my net has finished training   
