@@ -1,6 +1,8 @@
 
 # Texting and Driving Project 
 
+### State Farm, Summer 2016 
+
 ## Overview 
 - The goal of this project was to see if we could detect texting from 
 a video stream using convolutional neural nets
