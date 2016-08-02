@@ -5,6 +5,8 @@
 
 # References: Taken mostly from https://jessesw.com/Deep-Learning/
 
+# Note: TODO LATER - RIGHT NOW ONLY SUPPORTS GREYSCALE IMAGES 
+
 from scipy.ndimage import convolve, rotate
 import numpy as np
 
@@ -69,23 +71,19 @@ def random_image_generator(image_stack):
 def random_2D_image_generator(image):
     """
     Overview: 
-        This function randomly translates and rotates multiple 
-        image frames (all in same direction), producing a new, 
-        altered version as output. 
+        This function randomly rotates an image  
     ----------
-    image_stack: numpy array    
-        A numpy array of shape (1, length, width) 
+    image: numpy array    
+        A numpy array of shape (length, width) 
 
     Returns
     -------
     new_image: numpy array  
-        A numpy array of shape (1, num_frames, length, width) 
-        that is the randomly rotated version of 'image_stack'
-    Note:
-        Warning: NOT TESTED but should be right. 
+        A numpy array of shape (1, length, width) 
+        that is the randomly rotated version of 'image' 
     """
-    length = image_stack.shape[1]
-    width = image_stack.shape[2]
+    length = image.shape[1]
+    width = image.shape[2]
     # Create our movement vectors for translation first. 
         
     move_up = [[0, 1, 0],

@@ -28,17 +28,17 @@ from theano.tensor import *
 
 from lasagne.nonlinearities import rectify
 from lasagne.layers import InputLayer, DenseLayer, DropoutLayer
-from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer
+from lasagne.layers.dnn import Conv2DDNNLayer, MaxPool2DDNNLayer
 from lasagne.objectives import binary_hinge_loss
 from lasagne.updates import adam, nesterov_momentum
 from lasagne import layers
 
 from random_image_generator import * 
 
-def build_cnn(input_var):
+def build_cnn(input_var): # !
     """
     Overview:
-        Builds 3D spatio-temporal CNN model
+        Builds 2d CNN model
     ----------
     input_var: Theano Tensor 
         For our architecture this should be set to  
@@ -55,26 +55,26 @@ def build_cnn(input_var):
         is at key 'output'
     """
     net = {}
-    net['input'] = InputLayer((None, 1, 10, 81, 144), input_var=input_var)
+    net['input'] = InputLayer((None, 1, 81, 144), input_var=input_var)
 
     # ----------- 1st Conv layer group ---------------
-    net['conv1a'] = Conv3DDNNLayer(net['input'], 16, (3,3,3), nonlinearity=rectify,flip_filters=False)
-    net['pool1']  = MaxPool3DDNNLayer(net['conv1a'],pool_size=(1,2,2))
+    net['conv1a'] = Conv2DDNNLayer(net['input'], 16, (3,3), nonlinearity=rectify,flip_filters=False)
+    net['pool1']  = MaxPool2DDNNLayer(net['conv1a'],pool_size=(2,2))
 
     # ------------- 2nd Conv layer group --------------
-    net['conv2a'] = Conv3DDNNLayer(net['pool1'], 32, (3,3,3), nonlinearity=rectify)
-    net['pool2']  = MaxPool3DDNNLayer(net['conv2a'],pool_size=(2,2,2))
+    net['conv2a'] = Conv2DDNNLayer(net['pool1'], 24, (3,3), nonlinearity=rectify)
+    net['pool2']  = MaxPool2DDNNLayer(net['conv2a'],pool_size=(2,2))
     net['dropout2'] = DropoutLayer(net['pool2'], p=.3)
 
     # ----------------- 3rd Conv layer group --------------
-    net['conv3a'] = Conv3DDNNLayer(net['dropout2'], 64, (3,3,3), nonlinearity=rectify)
-    net['pool3']  = MaxPool3DDNNLayer(net['conv3a'],pool_size=(1,2,2))
+    net['conv3a'] = Conv2DDNNLayer(net['dropout2'], 32, (3,3), nonlinearity=rectify)
+    net['pool3']  = MaxPool2DDNNLayer(net['conv3a'],pool_size=(2,2))
     net['dropout3'] = DropoutLayer(net['pool3'], p=.5)
 
     # ----------------- Dense Layers -----------------
-    net['fc4']  = DenseLayer(net['dropout3'], num_units=500, nonlinearity=rectify)
+    net['fc4']  = DenseLayer(net['dropout3'], num_units=256, nonlinearity=rectify)
     net['dropout4'] = DropoutLayer(net['fc4'], p=.5)
-    net['fc5']  = DenseLayer(net['dropout4'], num_units=500, nonlinearity=rectify)
+    net['fc5']  = DenseLayer(net['dropout4'], num_units=128, nonlinearity=rectify)
 
     # ----------------- Output Layer -----------------
     net['output']  = DenseLayer(net['fc5'], num_units=1, nonlinearity=None)
@@ -129,17 +129,17 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         swap_indcs = np.random.choice(batchsize, num_changes, replace=False)
         flip_indcs = swap_indcs[0:distorts_per_cat]
         rotate_indcs = swap_indcs[distorts_per_cat:(2 * distorts_per_cat)]
-        batch_sample_input[flip_indcs] = batch_sample_input[flip_indcs, :, :, :, ::-1] 
+        batch_sample_input[flip_indcs] = batch_sample_input[flip_indcs, :, :, ::-1] 
         for i in rotate_indcs:
-            batch_sample_input[i, :, :, :, :] = random_image_generator(batch_sample_input[i, :, :, :, :])
+            batch_sample_input[i, :, :, :] = random_2D_image_generator(batch_sample_input[i, :, :, :]) # !
         yield batch_sample_input, batch_sample_target
 
 # This function was taken from:
 # http://stackoverflow.com/questions/34338838/pickle-python-lasagne-model
-def load_3dcnn_model(path_to_weights):
+def load_2dcnn_model(path_to_weights):
     """
     Overview: 
-        This loads pretrained weights into a 3D colvolutional 
+        This loads pretrained weights into a 2D colvolutional 
         neutal network. 
     ----------
     path_to_weights: string   
@@ -153,8 +153,8 @@ def load_3dcnn_model(path_to_weights):
     network: Lasagne object 
         The network w/ the specified weights loaded into each layer.  
     """
-    dtensor5 = TensorType('float32', (False,)*5)
-    input_var = dtensor5('inputs')
+    dtensor4 = TensorType('float32', (False,)*4) # !
+    input_var = dtensor4('inputs') # !
     network = build_cnn(input_var)['output']
     with np.load(path_to_weights) as f:
         param_values = [f['arr_%d' % i] for i in range(len(f.files))]
@@ -252,11 +252,14 @@ if __name__ == '__main__':
 
     # Load data (did not standardize b/c images in 0-256)
     X = np.load('../data/train/images_by_time_mat.npy')
+    X = X / 255
     X = X.astype(np.float32)
     
-    # Only have 1 channel, need to reshape in order to match 5d required input
-    X.shape = (3064, 1, 10, 81, 144) 
-    X = X / 255   
+    # Only have 1 channel, need to reshape in order to match 4d required input
+    X.shape = (3064, 1, 10, 81, 144)
+
+    # Just use 5th frame of each .5 second or 10 frame video sequence 
+    X = X[:, :, 5, :, :] # !
     
     Y = np.load('../data/train/labels.npy')
 
@@ -282,8 +285,8 @@ if __name__ == '__main__':
     Y = None 
 
     # Fit model 
-    dtensor5 = TensorType('float32', (False,)*5)
-    input_var = dtensor5('inputs')
+    dtensor4 = TensorType('float32', (False,)*4) # !
+    input_var = dtensor4('inputs') # !
     target_var = T.ivector('targets')
     network = build_cnn(input_var)['output']
 
@@ -341,8 +344,8 @@ if __name__ == '__main__':
         # Check if we are starting to overfit  
         if stop_early(val_acc, epoch_accuracies): 
             # Save best weights in models directory
-            best_weight_path = '../data/train/weights/cnn' + str(best_network_weights_epoch) + '.npz'
-            os.rename(best_weight_path, '../models/3d_cnn_' + str(best_network_weights_epoch) + '.npz')
+            best_weight_path = '../data/train/weights/2dcnn' + str(best_network_weights_epoch) + '.npz'
+            os.rename(best_weight_path, '../models/2d_cnn_' + str(best_network_weights_epoch) + '.npz')
             break   
 
         epoch_accuracies.append(val_acc)
