@@ -15,6 +15,7 @@ import random
 
 from scipy.misc import imread 
 from scipy.ndimage.interpolation import zoom
+from ..load_comma_data import * 
 
 def readImage(path, reduction_factor=.4):
     """

@@ -33,7 +33,9 @@ from lasagne.layers.dnn import Conv2DDNNLayer, BatchNormDNNLayer
 from lasagne.updates import adam, nesterov_momentum
 from lasagne import layers
 
-from random_image_generator import * 
+from ..random_image_generator import * 
+from ..load_comma_data import *
+from ..training_helper_fns import * 
 
 def build_cnn(input_var, dim1, dim2):
     """
@@ -74,87 +76,6 @@ def build_cnn(input_var, dim1, dim2):
     net['fc4']  = DenseLayer(net['fc3'], num_units=10, nonlinearity=rectify)
     net['output']  = DenseLayer(net['fc4'], num_units=1, nonlinearity=None)
     return net
-
-def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
-    """
-    Overview: 
-        An iterator that randomly rotates or flips 3/4 of the 
-        samples in the minibatch. The remaining 1/4 of the samples
-        are left the same. This is used for (minibatch) stochastic gradient 
-        decent updating.
-    ----------
-    inputs: numpy array  
-        This should be the training data of shape 
-        (num_train, num_channels, length, width)
-    
-    targets: numpy array 
-        This should be the corresponding labels of shape
-        (num_train, )
-    
-    batchsize: int
-        The number of samples in each minibatch 
-    
-    shuffle: 
-        Defaults to false. If true, the training data is
-        shuffled.
-    Returns
-    -------
-    batch_sample_input: numpy array
-        An array consisting of the minibatch data with some samples
-        possibly flipped or randomly rotated. 
-    
-    batch_sample_target: numpy array
-        The corresponding labels for the batch_sample_input
-    """
-    num_samps = inputs.shape[0]
-    indcs = np.arange(num_samps)
-    if shuffle:
-        np.random.shuffle(indcs)
-    for i in range(0, num_samps - batchsize + 1, batchsize): 
-        batch_indcs = indcs[i:(i + batchsize)]
-        batch_sample_input = inputs[batch_indcs]
-        batch_sample_target = targets[batch_indcs]
-
-        # This handles random orientation logic
-        num_changes = int(batchsize * .75) # Prop of samples we distort
-        distorts_per_cat = int(num_changes / 2) # Of those we distort, flip half, rotate other half
-
-        swap_indcs = np.random.choice(batchsize, num_changes, replace=False)
-        flip_indcs = swap_indcs[0:distorts_per_cat]
-        rotate_indcs = swap_indcs[distorts_per_cat:(2 * distorts_per_cat)]
-        batch_sample_input[flip_indcs] = batch_sample_input[flip_indcs, :, :, ::-1] 
-        for i in rotate_indcs:
-            batch_sample_input[i, :, :, :] = random_2D_image_generator(batch_sample_input[i, :, :, :]) # !
-        yield batch_sample_input, batch_sample_target
-
-def stop_early(curr_val_acc, val_acc_list, patience=200):
-    """
-    Overview: 
-        This implements the early stopping logic for training.  
-    ----------
-    curr_val_acc: float    
-        The accuracy for the current epoch 
-    val_acc_list: array    
-        List of accuracies for past epochs
-    patience: int   
-        How many epochs to look back in order to compare 
-        'curr_val_acc'  
-    Returns
-    -------
-    boolean: True or False 
-        If true this means that the network should halt. Otherwise, 
-        the network should continue training.   
-    """
-    num_epochs = len(val_acc_list)
-    if num_epochs < patience:
-        return False 
-    else:
-        prev_acc = val_acc_list[num_epochs - patience]
-        if prev_acc > curr_val_acc:
-            print('Early Stopping')
-            return True 
-        else:
-            return False
 
 if __name__ == '__main__':
 
@@ -218,7 +139,7 @@ if __name__ == '__main__':
 
 	        train_err = 0
 	        train_batches = 0
-	        for batch in iterate_minibatches(X_train, y_train, 16, shuffle=True):
+	        for batch in iterate_minibatches2d(X_train, y_train, 16, shuffle=True):
 	            inputs, targets = batch
 	            train_err += train_fn(inputs, targets)
 	            train_batches += 1
@@ -227,7 +148,7 @@ if __name__ == '__main__':
         val_err = 0
         val_acc = 0
         val_batches = 0
-        for batch in iterate_minibatches(X_val, y_val, 16, shuffle=False):#TODO FIX - ROTATIING VAL SET 
+        for batch in iterate_minibatches2d(X_val, y_val, 16, shuffle=False):#TODO FIX - ROTATIING VAL SET 
             inputs, targets = batch
             err, acc = val_fn(inputs, targets)
             val_err += err
@@ -244,8 +165,8 @@ if __name__ == '__main__':
         # Check if we are starting to overfit  
         if stop_early(val_acc, epoch_accuracies): 
             # Save best weights in models directory
-            best_weight_path = './cnn_weights/' + str(best_network_weights_epoch) + '.npz'
-            os.rename(best_weight_path, './models/cnn' + str(best_network_weights_epoch) + '.npz')
+            best_weight_path = '../data/weights/train/' + '2dcnn' + str(best_network_weights_epoch) + '.npz'
+            os.rename(best_weight_path, '../data/weights/best' + '2dcnn' + str(best_network_weights_epoch) + '.npz')
             break   
 
         epoch_accuracies.append(val_acc)
