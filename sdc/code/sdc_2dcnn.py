@@ -81,9 +81,9 @@ if __name__ == '__main__':
 
 	# TODO LOOK AT DATA BEFORE SPLITTING 
 
-	all_paths_train = ['../data/camera/2016-01-30--11-24-51.h5', '../data/camera/2016-02-08--14-56-28.h5',  
-	'../data/camera/2016-05-12--22-20-00.h5','../data/camera/2016-01-30--13-46-00.h5',  
-	'../data/camera/2016-02-11--21-32-47.h5','../data/camera/2016-06-02--21-39-29.h5',
+    all_paths_train = ['../data/camera/2016-01-30--11-24-51.h5', '../data/camera/2016-02-08--14-56-28.h5',  
+    '../data/camera/2016-05-12--22-20-00.h5','../data/camera/2016-01-30--13-46-00.h5',  
+    '../data/camera/2016-02-11--21-32-47.h5','../data/camera/2016-06-02--21-39-29.h5',
     '../data/camera/2016-01-31--19-19-25.h5', '../data/camera/2016-03-29--10-50-20.h5',  
     '../data/camera/2016-06-08--11-46-01.h5']
 
@@ -94,12 +94,12 @@ if __name__ == '__main__':
     # sys.setrecursionlimit(10000)
 
     X_val, y_val, speed_val = load_data_label(paths_val)
-    X_val = X_val / 255
-    X_val = X_val.astype(np.float32)
+    # X_val = X_val /= 255
+    # X_val = X_val.astype(np.float32) #runs out of memory 
     y_val = y_val.astype(np.float32)
 
     # Fit model 
-    dtensor5 = TensorType('float32', (False,)*5)
+    dtensor5 = TensorType('float32', (False,)*4)
     input_var = dtensor5('inputs')
     target_var = T.fvector('targets')
     network = build_cnn(input_var)['output']
@@ -133,8 +133,6 @@ if __name__ == '__main__':
     for epoch in range(num_epochs):
     	for train_data_path in all_paths_train:
     		X_train, y_train, speed = load_data_label(train_data_path) #Y is angle 
-    		X_train = X_train / 255
-    		X_train = X_train.astype(np.float32)
     		y_train = y_train.astype(np.float32)
 
 	        train_err = 0

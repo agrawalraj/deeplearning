@@ -53,7 +53,7 @@ def get_array(hdf5_file):
     return data 
 
 def load_data_label(camera_path):
-	c5x, angle, speed, filters, hdf5_camera = concatenate([camera_path])
+	c5x, angle, speed, filters, hdf5_camera = concatenate([camera_path], 1)
 	data = get_array(hdf5_camera[0])
 	return (data, angle, speed)
 

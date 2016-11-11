@@ -35,6 +35,9 @@ def iterate_minibatches2d(inputs, targets, batchsize, shuffle=False):
     batch_sample_target: numpy array
         The corresponding labels for the batch_sample_input
     """
+    inputs = inputs.astype(np.float32) #Do conversion in batches - o/w runs out of memory 
+    inputs /= 255
+    inputs = inputs.astype(np.float32)
     num_samps = inputs.shape[0]
     indcs = np.arange(num_samps)
     if shuffle:
