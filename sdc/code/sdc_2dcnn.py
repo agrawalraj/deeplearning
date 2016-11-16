@@ -4,7 +4,7 @@
 # steering angle from a video stream  
 
 # Quick Architectural Overview:
-# - 3 convolutional layers (ReLu, Dropout, MaxPooling), 2 dense layers
+# - 3 convolutional layers (ReLu, Dropout, MaxPooling), 4 dense layers
 # - Squared Loss   
 # - Nesterov-Momentum update  
 # - Early Stopping
@@ -29,18 +29,18 @@ from theano.tensor import *
 
 from lasagne.nonlinearities import rectify
 from lasagne.layers import InputLayer, DenseLayer, DropoutLayer
-from lasagne.layers.dnn import Conv2DDNNLayer, BatchNormDNNLayer
+from lasagne.layers.dnn import Conv2DDNNLayer, BatchNormLayer
 from lasagne.updates import adam, nesterov_momentum
 from lasagne import layers
 
-from ..random_image_generator import * 
-from ..load_comma_data import *
-from ..training_helper_fns import * 
+from random_image_generator import * 
+from load_comma_data import *
+from training_helper_fns import * 
 
 def build_cnn(input_var, dim1, dim2):
     """
     Overview:
-        Builds 3D spatio-temporal CNN model
+        Builds 2D CNN model
     ----------
     input_var: Theano Tensor 
         For our architecture this should be set to  
@@ -54,7 +54,7 @@ def build_cnn(input_var, dim1, dim2):
     """
     net = {}
     net['input'] = InputLayer((None, 3, dim1, dim2), input_var=input_var)
-    net['norm'] = BatchNormDNNLayer(net['input'])
+    net['norm'] = BatchNormLayer(net['input'])
 
     # ----------- Conv layer group ---------------
     net['conv1a'] = Conv2DDNNLayer(net['norm'], 24, (5,5), stride=(2, 2), nonlinearity=rectify,flip_filters=False)
@@ -102,14 +102,14 @@ if __name__ == '__main__':
     dtensor5 = TensorType('float32', (False,)*4)
     input_var = dtensor5('inputs')
     target_var = T.fvector('targets')
-    network = build_cnn(input_var)['output']
+    network = build_cnn(input_var, 160, 320)['output']
 
-    # Create loss function
+        # Create loss function
     prediction = lasagne.layers.get_output(network)
     loss = lasagne.objectives.squared_error(prediction, target_var)
     loss = loss.mean()
 
-    # Create parameter update expressions (later I will make rates adaptive)
+        # Create parameter update expressions (later I will make rates adaptive)
     params = lasagne.layers.get_all_params(network, trainable=True)
     # updates = nesterov_momentum(loss, params, learning_rate=0.01,
     #                                         momentum=0.9)
